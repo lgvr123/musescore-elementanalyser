@@ -1,5 +1,5 @@
 
-var default_filterList = ["elements", "staff", "page", "bbox", /pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "previInMeasure"];
+var default_filterList = ["elements", "staff", "page", "bbox", /pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure"];
 var minimum_set = ["type", "name", "segmentType"];
 var deepest_parent = 90; //Element.SEGMENT;
 var deepest_level = 1;

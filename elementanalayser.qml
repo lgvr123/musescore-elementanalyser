@@ -17,18 +17,16 @@ MuseScore {
     height: 600
 
     /** the notes to which the fingering must be made. */
-    property var __notes: [];
+    property var element: null;
 
     // -----------------------------------------------------------------------
     // --- Read the score ----------------------------------------------------
     // -----------------------------------------------------------------------
     onRun: {
-
         Debug.addLogger(
             function (text) {
             txtLog.text = txtLog.text + "\n" + text;
         });
-
         // analysing whatever is selected
         var selection = curScore.selection;
 
@@ -40,12 +38,21 @@ MuseScore {
             console.warn("Limit analyze to first element");
         }
 
-        var note = el[0];
-        //addlog("analysing the selected element " + (i + 1) + " (" + note.name + " [" + note.type + "]" + ")");
-        //if (note.type!=84) continue;
-        Debug.debugO("first element", note);
+        element = el[0];
+        
+        console.log("initialization done");
+        
+        timer.start();
 
+    
     }
+    function analyze() {
+
+        Debug.debugO("first element", element);
+		busyIndicator.running=false;
+    }
+
+    // Component.onCompleted: console.log("Window ready!")
 
     // -----------------------------------------------------------------------
     // --- Screen design -----------------------------------------------------
@@ -64,15 +71,33 @@ MuseScore {
             id: view
             Layout.fillWidth: true
             Layout.fillHeight: true
+            // Component.onCompleted: console.log("ScrollV ready!")
             TextArea {
                 id: txtLog
                 text: ""
-                placeholderText: "here will come the selected note details..."
+                selectByMouse: true
+                selectByKeyboard: true
+                cursorVisible: true
+                readOnly: true
+                focus: true
+                placeholderText: "here will come the selected element details..."
                 background: Rectangle {
                     color: "white"
                     border.color: "#C0C0C0"
                 }
             }
+
+            ScrollBar.vertical: ScrollBar {
+                parent: view
+                width: 20
+                x: view.mirrored ? 0 : view.width - width
+                y: view.topPadding
+                height: view.availableHeight
+                active: true
+                interactive: true
+                visible: !busyIndicator.running
+            }
+
         }
 
         Item { // buttons row // DEBUG was Item
@@ -97,6 +122,25 @@ MuseScore {
             }
         } // button rows
 
+    }
+
+    BusyIndicator {
+        id: busyIndicator
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: 60
+        height: 60
+        running: true
+
+    }
+    
+    Timer {
+            id: timer;
+        interval: 250; running: false; repeat: false
+        onTriggered: {
+            console.log("timer triggered");
+            analyze();
+        }
     }
     // ----------------------------------------------------------------------
     // --- Screen support ---------------------------------------------------
