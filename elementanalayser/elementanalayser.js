@@ -1,25 +1,34 @@
 
-var default_filterList = ["elements", "staff", "page", "bbox", /pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure"];
+/**********************
+/* Parking B - MuseScore - Solo Analyser core plugin
+/* v1.0.0
+/* ChangeLog:
+/* 	- 1.0.0: Initial release
+/* 	- 1.0.1: Improved robustness in CompareObjects
+/* 	- 1.0.1: New don't dig into list that applies in include mode
+/**********************************************/
+var default_nodiglist = ["bbox", /pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM","lastTiedNote","firstTiedNote"];
+var default_filterList = ["elements", "staff", "page"].concat(default_nodiglist);
 var minimum_set = ["type", "name", "segmentType"];
 var deepest_parent = 90; //Element.SEGMENT;
 var deepest_level = 1;
 
-var xloggers=[];
-
+var xloggers = [];
 
 function addLogger(f) {
-	if (typeof f !== 'function') {
-		console.warn("Invalid logger function : "+((f)?f.toString():"undefined/null"));
-		return;
-	}
-	if (!xloggers) xloggers=[];
-	xloggers.push(f);
+    if (typeof f !== 'function') {
+        console.warn("Invalid logger function : " + ((f) ? f.toString() : "undefined/null"));
+        return;
+    }
+    if (!xloggers)
+        xloggers = [];
+    xloggers.push(f);
 }
 
 // -- core methods ---------------------------------------------
 
 function debugO(prefix, element, how, level, sub) {
-
+	
     var title = "";
 
     if (typeof level === 'undefined') {
@@ -54,6 +63,8 @@ function debugO(prefix, element, how, level, sub) {
         how.separateParent = true;
     if (typeof(how.stopat) !== 'number')
         how.stopat = deepest_parent;
+    if (typeof(how.dontdig) === 'undefined')
+        how.dontdig = default_nodiglist;
 
     // -- titles --------------------------------------------------------
     if (level === 0 && sub === 0) {
@@ -119,6 +130,11 @@ function debugO(prefix, element, how, level, sub) {
                 // ..we always keep the "type" (etc) properties
                 if (minimum_set.indexOf(key) > -1) {
                     keep = true;
+                }
+                
+                // ..in "include" mode we never keep what's in the "don't dig into" list
+				else if (how.dontdig.indexOf(key) > -1 && how.isinclude) {
+                    keep = false;
                 }
 
                 // ..we never keep the parent and the elements of the 1st level if a separated analyse is required
@@ -209,12 +225,11 @@ function debugO(prefix, element, how, level, sub) {
         }
     }
 
-if (level===0) {
-	console.log("parent: "+(element.parent?element.parent.toString():"/"));
-	console.log("separateParent: "+how.separateParent);
-	console.log("type: "+element.type);
-}
-
+    // if (level === 0) {
+        // console.log("parent: " + (element.parent ? element.parent.toString() : "/"));
+        // console.log("separateParent: " + how.separateParent);
+        // console.log("type: " + element.type);
+    // }
 
     // analyze  du parent
     if ((level === 0) &&
@@ -247,9 +262,20 @@ function compareObjects(objects, properties, how) {
             var score = objects[s];
             var prop = properties[e];
             var action = "score." + prop;
-            //console.log(action);
-            // console.log(prop + ": " + eval(action));
-            debugO("[" + s + "] - " + prop, eval(action), how);
+            var result = "n/a";
+            if (typeof score === 'undefined')
+                result = "invalid object (undefined)";
+            else if (score === null)
+                result = "invalid object (null)";
+            else
+
+                try {
+                    result = eval(action);
+                } catch (error) {
+                    result = error;
+                }
+
+            debugO("[" + s + "] - " + prop, result, how);
         }
     }
 }
@@ -266,10 +292,10 @@ function check(e, tests) {
 
 function addlog(text) {
     console.log(text);
-	if (xloggers) {
-	for(var i=0; i<xloggers.length;i++) {
-		var logger=xloggers[i];
-		logger(text);
-	}
-	}
+    if (xloggers) {
+        for (var i = 0; i < xloggers.length; i++) {
+            var logger = xloggers[i];
+            logger(text);
+        }
+    }
 }
