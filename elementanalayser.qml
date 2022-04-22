@@ -7,6 +7,13 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Layouts 1.1
 import "elementanalayser/elementanalayser.js" as Debug
 
+/**********************
+/* Parking B - MuseScore - Element analyser
+/* v1.0.1
+/* ChangeLog:
+/* 	- 1.0.0: Initial release
+/* 	- 1.0.1: Striketrough of non investigated elements
+/**********************************************/
 MuseScore {
     menuPath: "Plugins.Element analyser"
     description: "Retrieve all the properties about the selected element"
@@ -25,7 +32,14 @@ MuseScore {
     onRun: {
         Debug.addLogger(
             function (text) {
-            txtLog.text = txtLog.text + "\n" + text;
+            var split = text.match(/^([\s.-]*)(.*): ---$/m);
+            var recompose;
+            if (split === null)
+                recompose = text;
+            else {
+                recompose = split[1] + "<s>" + split[2] + "</s>";
+            }
+            txtLog.text = txtLog.text + "\n" + recompose;
         });
         // analysing whatever is selected
         var selection = curScore.selection;
@@ -39,17 +53,16 @@ MuseScore {
         }
 
         element = el[0];
-        
+
         console.log("initialization done");
-        
+
         timer.start();
 
-    
     }
     function analyze() {
 
         Debug.debugO("first element", element);
-		busyIndicator.running=false;
+        busyIndicator.running = false;
     }
 
     // Component.onCompleted: console.log("Window ready!")
@@ -80,6 +93,7 @@ MuseScore {
                 cursorVisible: true
                 readOnly: true
                 focus: true
+                textFormat: Text.RichText
                 placeholderText: "here will come the selected element details..."
                 background: Rectangle {
                     color: "white"
@@ -133,13 +147,17 @@ MuseScore {
         running: true
 
     }
-    
+
     Timer {
-            id: timer;
-        interval: 250; running: false; repeat: false
+        id: timer;
+        interval: 250;
+        running: false;
+        repeat: false
         onTriggered: {
+            txtLog.text = "<html>";
             console.log("timer triggered");
             analyze();
+            txtLog.text = txtLog.text + "\n" + "</html>";
         }
     }
     // ----------------------------------------------------------------------
