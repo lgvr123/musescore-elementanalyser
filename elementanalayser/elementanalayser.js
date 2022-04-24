@@ -7,7 +7,7 @@
 /* 	- 1.0.1: Improved robustness in CompareObjects
 /* 	- 1.0.1: New don't dig into list that applies in include mode
 /**********************************************/
-var default_nodiglist = ["bbox", /pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM","lastTiedNote","firstTiedNote"];
+var default_nodiglist = ["bbox", /^pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM", "lastTiedNote", "firstTiedNote"];
 var default_filterList = ["elements", "staff", "page"].concat(default_nodiglist);
 var minimum_set = ["type", "name", "segmentType"];
 var deepest_parent = 90; //Element.SEGMENT;
@@ -26,9 +26,21 @@ function addLogger(f) {
 }
 
 // -- core methods ---------------------------------------------
+function debugNonNulls(prefix, element, how) {
+    if (typeof how === 'undefined') {
+        how = {};
+    }
+
+    if (typeof how.limitToNotNull !== 'boolean') {
+        how.limitToNotNull = true;
+    }
+
+    debugO(prefix, element, how);
+
+}
 
 function debugO(prefix, element, how, level, sub) {
-	
+
     var title = "";
 
     if (typeof level === 'undefined') {
@@ -65,6 +77,8 @@ function debugO(prefix, element, how, level, sub) {
         how.stopat = deepest_parent;
     if (typeof(how.dontdig) === 'undefined')
         how.dontdig = default_nodiglist;
+    if (typeof how.limitToNotNull !== 'boolean')
+        how.limitToNotNull = false;
 
     // -- titles --------------------------------------------------------
     if (level === 0 && sub === 0) {
@@ -87,9 +101,11 @@ function debugO(prefix, element, how, level, sub) {
 
     // -- analyze --------------------------------------------------------
     if (typeof element === 'undefined') {
-        addlog(label + ": undefined");
+        if (!how.limitToNotNull)
+            addlog(label + ": undefined");
     } else if (element === null) {
-        addlog(label + ": null");
+        if (!how.limitToNotNull)
+            addlog(label + ": null");
     } else if (Array.isArray(element)) { // QMLLists are not arrays but behave like arrays
         for (var i = 0; i < element.length; i++) {
             debugO(prefix + "-" + i, element[i], how, level);
@@ -131,9 +147,9 @@ function debugO(prefix, element, how, level, sub) {
                 if (minimum_set.indexOf(key) > -1) {
                     keep = true;
                 }
-                
+
                 // ..in "include" mode we never keep what's in the "don't dig into" list
-				else if (how.dontdig.indexOf(key) > -1 && how.isinclude) {
+                else if (how.dontdig.indexOf(key) > -1 && how.isinclude) {
                     keep = false;
                 }
 
@@ -160,7 +176,7 @@ function debugO(prefix, element, how, level, sub) {
                 // digging into the keys needing further analyze
                 if (keep) {
                     debugO(prefix + "." + key, value, how, level + 1);
-                } else if (!how.isinclude || !how.hideExcluded) {
+                } else if (!how.hideExcluded) {
                     addlog(label + "." + key + ": ---"); // in "include" mode, hide how's excluded.
                 }
             }
@@ -226,23 +242,30 @@ function debugO(prefix, element, how, level, sub) {
     }
 
     // if (level === 0) {
-        // console.log("parent: " + (element.parent ? element.parent.toString() : "/"));
-        // console.log("separateParent: " + how.separateParent);
-        // console.log("type: " + element.type);
+    // console.log("parent: " + (element.parent ? element.parent.toString() : "/"));
+    // console.log("separateParent: " + how.separateParent);
+    // console.log("type: " + element.type);
     // }
 
     // analyze  du parent
     if ((level === 0) &&
         element &&
-        (typeof(element.parent) !== 'undefined') &&
         (how.separateParent) &&
-        (!check("parent", how.filterList) || how.isinclude) &&
-        (element.type !== how.stopat)) {
-        addlog("");
-        addlog("Parent: " + element.parent.userName());
-        debugO("", element.parent, how, 0, 1) // restart at level 0
-    }
+        (!check("parent", how.filterList) || how.isinclude)) {
 
+        addlog("");
+
+        if ((typeof(element.parent) === 'undefined') ||
+            (element.parent === null)) {
+            addlog("Parent: no more parents");
+
+        } else if (element.type === how.stopat) {
+            addlog("Parent: " + element.parent.userName() + " (stopping here");
+        } else {
+            addlog("Parent: " + element.parent.userName());
+            debugO("", element.parent, how, 0, 1) // restart at level 0
+        }
+    }
     if (level === 0 && sub === 0) {
         if (title && how.maxlevel > 0)
             addlog("=== " + title + " (end) ===");
