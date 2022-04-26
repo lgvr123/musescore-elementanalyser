@@ -1,11 +1,11 @@
 
 /**********************
 /* Parking B - MuseScore - Solo Analyser core plugin
-/* v1.0.0
+/* v1.1.0
 /* ChangeLog:
 /* 	- 1.0.0: Initial release
 /* 	- 1.0.1: Improved robustness in CompareObjects
-/* 	- 1.0.1: New don't dig into list that applies in include mode
+/* 	- 1.1.0: New don't dig into list that applies in include mode
 /**********************************************/
 var default_nodiglist = ["bbox", /^pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM", "lastTiedNote", "firstTiedNote"];
 var default_filterList = ["elements", "staff", "page"].concat(default_nodiglist);
