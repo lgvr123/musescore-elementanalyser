@@ -93,7 +93,7 @@ function debugO(prefix, element, how, level, sub) {
             prefix += "..";
         }
         addlog(prefix + "Properties: ");
-        prefix += "..";
+        prefix += "..["+element.userName()+"]";
     }
 
     var label = prefix; // + "(" + level + ")";

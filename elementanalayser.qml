@@ -6,6 +6,8 @@ import QtQuick.Dialogs 1.2
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Layouts 1.1
 import "elementanalayser/elementanalayser.js" as Debug
+import "elementanalayser"
+import Qt.labs.settings 1.0
 
 /**********************
 /* Parking B - MuseScore - Element analyser
@@ -21,15 +23,26 @@ MuseScore {
     pluginType: "dialog"
     requiresScore: true
     width: 600
-    height: 600
+    height: 650
 
     /** the notes to which the fingering must be made. */
     property var element: null;
+
+    property bool analyzeRunning: false
+
+    Settings {
+        id: settings
+        category: "ElementAnalyser"
+        property alias autorun: autorun.checked
+        property alias analyse: rdbAnalyseAll.checked
+    }
 
     // -----------------------------------------------------------------------
     // --- Read the score ----------------------------------------------------
     // -----------------------------------------------------------------------
     onRun: {
+        analyzeRunning = false;
+		if (!rdbAnalyseAll.checked && !rdbAnalyseNonNull.checked) rdbAnalyseNonNull.checked=!rdbAnalyseAll.checked;
         Debug.addLogger(
             function (text) {
             var split = text.match(/^([\s.-]*)(.*): ---$/m);
@@ -56,13 +69,20 @@ MuseScore {
 
         console.log("initialization done");
 
-        timer.start();
+        if (settings.autorun) {
+            analyzeRunning = true;
+            timer.start();
+        }
 
     }
     function analyze() {
 
-        Debug.debugO("first element", element);
-        busyIndicator.running = false;
+		if(rdbAnalyseAll.checked) {
+        Debug.debugO("All", element);
+		} else if(rdbAnalyseNonNull.checked) {
+        Debug.debugNonNulls("Non null properties", element);
+		}
+        analyzeRunning = false;
     }
 
     // Component.onCompleted: console.log("Window ready!")
@@ -109,14 +129,40 @@ MuseScore {
                 height: view.availableHeight
                 active: true
                 interactive: true
-                visible: !busyIndicator.running
+                visible: !analyzeRunning
             }
 
         }
 
+        SmallCheckBox {
+            id: autorun
+            text: "Automatically run with last settings on next startup"
+            checked: false
+
+        }
+
+        RowLayout {
+            Label {
+                text: "Analyse mode:"
+            }
+            // ButtonGroup {
+            // id: grpAnalyseType
+            // }
+            NiceRadioButton {
+                id: rdbAnalyseAll
+                text: qsTr("All")
+                checked: true
+                //ButtonGroup.group: bar
+            }
+            NiceRadioButton {
+                id: rdbAnalyseNonNull
+                text: qsTr("Non null")
+                //ButtonGroup.group: bar
+            }
+        }
         Item { // buttons row // DEBUG was Item
             Layout.fillWidth: true
-            Layout.preferredHeight: buttonBox.implicitHeight
+            Layout.preferredHeight: btnAnalyse.implicitHeight
 
             RowLayout {
                 id: panButtons
@@ -128,8 +174,20 @@ MuseScore {
                 }
 
                 Button {
-                    id: buttonBox
+                    id: btnAnalyse
+                    text: "Analyse!"
+					enabled: !analyzeRunning &&  (rdbAnalyseAll.checked || rdbAnalyseNonNull.checked)
+
+                    onClicked: {
+                        analyzeRunning = true;
+                        timer.start();
+                    }
+                }
+                Button {
+                    id: btnClose
                     text: "Close"
+
+					enabled: !analyzeRunning
 
                     onClicked: Qt.quit()
                 }
@@ -144,9 +202,11 @@ MuseScore {
         y: Math.round((parent.height - height) / 2)
         width: 60
         height: 60
-        running: true
-
+        running: analyzeRunning
+        visible: analyzeRunning
     }
+
+
 
     Timer {
         id: timer;
