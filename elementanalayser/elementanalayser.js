@@ -1,16 +1,18 @@
 
 /**********************
 /* Parking B - MuseScore - Solo Analyser core plugin
-/* v1.1.0
+/* v1.1.2
 /* ChangeLog:
 /* 	- 1.0.0: Initial release
 /* 	- 1.0.1: Improved robustness in CompareObjects
 /* 	- 1.1.0: New don't dig into list that applies in include mode
+/* 	- 1.1.1: Les objets sans clés sont correctement affichés
+/* 	- 1.1.2: Don't dig into objects when we are already at the maxlevl
 /**********************************************/
 var default_nodiglist = ["bbox", /^pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM", "lastTiedNote", "firstTiedNote"];
 var default_filterList = ["elements", "staff", "page"].concat(default_nodiglist);
 var minimum_set = ["type", "name", "segmentType"];
-var deepest_parent = 90; //Element.SEGMENT;
+var deepest_parent = 70; //Element.MEASURE;
 var deepest_level = 1;
 
 var xloggers = [];
@@ -38,7 +40,9 @@ function debugNonNulls(prefix, element, how) {
     debugO(prefix, element, how);
 
 }
-
+/**
+* One can use maxlevel=-1 as maxlevel=0 to have a simplified output presentation
+*/
 function debugO(prefix, element, how, level, sub) {
 
     var title = "";
@@ -83,17 +87,17 @@ function debugO(prefix, element, how, level, sub) {
     // -- titles --------------------------------------------------------
     if (level === 0 && sub === 0) {
         title = prefix;
-        if (title && how.maxlevel > 0)
+        if (title && how.maxlevel >= 0)
             addlog("=== " + title + " (start) ===");
     }
 
-    if (level === 0 && how.maxlevel > 0) {
+    if (level === 0 && how.maxlevel >= 0) {
         prefix = "";
         for (var i = 0; i < sub; i++) {
             prefix += "..";
         }
         addlog(prefix + "Properties: ");
-        prefix += "..["+element.userName()+"]";
+        prefix += "..[" + element.userName() + "]";
     }
 
     var label = prefix; // + "(" + level + ")";
@@ -113,6 +117,16 @@ function debugO(prefix, element, how, level, sub) {
     } else if (typeof element === 'object') {
         if (level <= how.maxlevel) {
             var kys = Object.keys(element);
+
+
+            if (kys.length === 0) {
+                if (typeof(element.userName) === 'function') {
+                    addlog(label + ": " + element.userName());
+                } else {
+                    // addlog(label + ": " + element.toString());
+                    addlog(label + ": " + element);
+                }
+            }
 
             // ordering of the keys for easisest analyse
             kys = kys.sort(function (a, b) {
@@ -140,38 +154,47 @@ function debugO(prefix, element, how, level, sub) {
                 var value = element[key];
                 var asint = parseInt(key);
 
+				// console.log("--- "+key+" ---");
+
                 // identifying if a key must be further analyzed
                 var keep = false;
 
                 // ..we always keep the "type" (etc) properties
                 if (minimum_set.indexOf(key) > -1) {
                     keep = true;
+					// console.log("keep because in minimum set");
                 }
 
                 // ..in "include" mode we never keep what's in the "don't dig into" list
                 else if (how.dontdig.indexOf(key) > -1 && how.isinclude) {
                     keep = false;
+					// console.log("reject because in `don't dig` list");
                 }
 
                 // ..we never keep the parent and the elements of the 1st level if a separated analyse is required
                 else if ((key === 'parent' || key === 'elements') && level === 0 && how.separateParent) {
                     keep = false;
-
+					// console.log("reject because is 'parnt'");
                 }
                 // ..check d'une pseudo array
                 else if ((asint == key) && (asint < element.length)) { // "==" on purpose instead of "==="
                     keep = true;
+					// console.log("keep because is an array item");
                 }
 
-                // ..in "include" mode, we keep every value which is an object in order to seek for matching properties underneath.
-                else if ((typeof value === 'object') && how.isinclude) {
+                // ..in "include" mode, we keep every value which is an object in order to seek for matching properties underneath, if we are not at the max level
+                else if ((typeof value === 'object') && how.isinclude && (level < how.maxlevel)) {
                     keep = true;
+					// console.log("keep because is an object, and we are going to investigate all objects");
                 }
 
                 // ..we exclude/include how's in the filter list
                 else {
                     keep = (check(key, how.filterList) ^ !how.isinclude);
+					// console.log((keep?"keep":"reject")+" because in include/exclude list");
                 }
+				
+				// console.log("--- "+key+" --- decision: "+keep);
 
                 // digging into the keys needing further analyze
                 if (keep) {
@@ -192,25 +215,25 @@ function debugO(prefix, element, how, level, sub) {
             }
 
             var more;
-            var kys = Object.keys(element)
-                if (kys.length > 0) {
-                    var max = 8;
-                    var more = kys.filter(function (e) {
-                        return minimum_set.indexOf(e) === -1
+            var kys = Object.keys(element);
+            if (kys.length > 0) {
+                var max = 8;
+                var more = kys.filter(function (e) {
+                    return minimum_set.indexOf(e) === -1
+                });
+                if (more.length < max) {
+                    more = more.join(", ");
+                } else {
+                    more = more.filter(function (e, pos) {
+                        return pos < max
                     });
-                    if (more.length < max) {
-                        more = more.join(", ");
-                    } else {
-                        more = more.filter(function (e, pos) {
-                            return pos < max
-                        });
-                        more = more.join(", ") + ", ...";
-                    }
-                } else if (typeof(element.userName) === 'function') {
-                    more = element.userName();
-                } else
-                    more = element.toString();
-                addlog(label + "." + more);
+                    more = more.join(", ") + ", ...";
+                }
+            } else if (typeof(element.userName) === 'function') {
+                more = element.userName();
+            } else
+                more = element.toString();
+            addlog(label + "." + more);
         }
         // Beyong the maxlevel, simply logging a string summary of the object
         else if (typeof(element.userName) === 'function') {
@@ -219,7 +242,7 @@ function debugO(prefix, element, how, level, sub) {
             addlog(label + ": " + element.toString());
         }
     } else {
-        addlog(label + ": " + element);
+        addlog(label + ": " + element.toString());
     }
 
     if (level === 0) {
@@ -260,7 +283,7 @@ function debugO(prefix, element, how, level, sub) {
             addlog("Parent: no more parents");
 
         } else if (element.type === how.stopat) {
-            addlog("Parent: " + element.parent.userName() + " (stopping here");
+            addlog("Parent: " + element.parent.userName() + " (stopping here)");
         } else {
             addlog("Parent: " + element.parent.userName());
             debugO("", element.parent, how, 0, 1) // restart at level 0
