@@ -11,11 +11,12 @@ import Qt.labs.settings 1.0
 
 /**********************
 /* Parking B - MuseScore - Element analyser
-/* v1.1.0
+/* v1.1.1
 /* ChangeLog:
 /* 	- 1.0.0: Initial release
 /* 	- 1.1.0: Striketrough of non investigated elements
 /* 	- 1.1.0: Choice between Non Nulls / All analysis
+/* 	- 1.1.1: Les QVariants (objets sans propriétés) n'étaient pas affichés
 /**********************************************/
 MuseScore {
     menuPath: "Plugins.Element analyser"
@@ -78,14 +79,21 @@ MuseScore {
     }
     function analyze() {
 
-		if(rdbAnalyseAll.checked) {
-        Debug.debugO("All", element);
-		} else if(rdbAnalyseNonNull.checked) {
-        Debug.debugNonNulls("Non null properties", element);
-		}
+        if (rdbAnalyseAll.checked) {
+            Debug.debugO("All", element);
+        } else if (rdbAnalyseNonNull.checked) {
+            Debug.debugNonNulls("Non null properties", element);
+        } else if (rdbAnalyseTick.checked) {
+            Debug.debugNonNulls("Tick", element, {
+                filterList: ["tick"],
+                isinclude: true,
+                maxlevel: 0,
+                stopat: Element.SEGMENT, // never stop
+                hideExcluded: true
+            });
+        }
         analyzeRunning = false;
     }
-
     // Component.onCompleted: console.log("Window ready!")
 
     // -----------------------------------------------------------------------
@@ -160,6 +168,11 @@ MuseScore {
                 text: qsTr("Non null")
                 //ButtonGroup.group: bar
             }
+            NiceRadioButton {
+                id: rdbAnalyseTick
+                text: qsTr("Tick")
+                //ButtonGroup.group: bar
+            }
         }
         Item { // buttons row // DEBUG was Item
             Layout.fillWidth: true
@@ -177,7 +190,7 @@ MuseScore {
                 Button {
                     id: btnAnalyse
                     text: "Analyse!"
-					enabled: !analyzeRunning &&  (rdbAnalyseAll.checked || rdbAnalyseNonNull.checked)
+					enabled: !analyzeRunning &&  (rdbAnalyseAll.checked || rdbAnalyseNonNull.checked || rdbAnalyseTick.checked)
 
                     onClicked: {
                         analyzeRunning = true;
