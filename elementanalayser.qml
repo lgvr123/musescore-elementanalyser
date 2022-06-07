@@ -11,12 +11,13 @@ import Qt.labs.settings 1.0
 
 /**********************
 /* Parking B - MuseScore - Element analyser
-/* v1.1.1
+/* v1.1.2
 /* ChangeLog:
 /* 	- 1.0.0: Initial release
 /* 	- 1.1.0: Striketrough of non investigated elements
 /* 	- 1.1.0: Choice between Non Nulls / All analysis
 /* 	- 1.1.1: Les QVariants (objets sans propriétés) n'étaient pas affichés
+/* 	- 1.1.2: New "Tick" search option
 /**********************************************/
 MuseScore {
     menuPath: "Plugins.Element analyser"
