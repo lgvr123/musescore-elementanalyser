@@ -2,6 +2,16 @@
 # Element Analyser plugin for MuseScore 3.x
 **Element Analyser** is an plugin for MuseScore that allows to retrieve the properties of an element. 
 
+## What's new in 1.1.2 ?
+### User Interface
+* New option for searching only for **Non-Null elements**. This provides a faster search result, but will hide some properties you might be looking for
+* New option for providing the **tick** of the selected element
+* Store the last used option for faster re-use.
+
+### Library
+* New **dontdig** option ("do not dig into") defining a list of elements to never dig into. This mostly applies when in _include_ mode. The default value contains properties such as `next`, `prev`, `color`, `bbox`, `align`, ...
+* New **limitToNotNull** option specifying whether to hide or display the properties that are not defined.
+
 ## Features
 * It provides a **User Interface** for displaying those properties, as well as
 * A **re-usable library** to incorporate debug and element-analyze into your own plugins.
@@ -51,20 +61,19 @@ You can also specify your own list of elements. `excluded` might be a single str
 debugO is highly configurable. It can receive a json object defining its behaviour.
 
 Json structure:
-* `filterList`: array of property names to exclude or include. Can also be a regexp. <br/>Default: ["staff", "page", "bbox", /pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "previInMeasure"]
+* `filterList`: array of property names to exclude or include. Can also be a regexp. <br/>Default: [`elements`, `staff`, `page`] + the "dontdig" list.
 * `isinclude`:  true|false. Default: false.<br/>Tells whether the filterList list is defining what must be included in the analyse or excluded.
 * `hideExcluded`: true|false. Default: false.<br/>In *include* mode, the non included properties will not be further analysed. They can also be hidden from the analyse. The benefit is a smaller analyse output. The risk is missing some properties forgotten in the include list.
 * `maxlevel`: number. Must be &ge; 0. Default: 1.<br/>Tells how far to dive into the properties tree. The higher the number, the bigger the analyse output.
 * `stopat`: ElementType value. Default: Element.SEGMENT (90).<br/>Tells when to stop analysing the parent tree.
+* `dontdig` : array of property names to never investigate. Can also be a regexp. <br/>Default: [`bbox`, `/^pos/i`, `/color/i`, `/align/i`, `next`, `prev`, `nextInMeasure`, `prevInMeasure`, `lastMeasure`, `firstMeasure`, `lastMeasureMM`, `firstMeasureMM`, `prevMeasure`, `nextMeasure`, `prevMeasureMM`, `nextMeasureMM`, `lastTiedNote`, `firstTiedNote`]
+* `limitToNotNull`:  true|false. Default: false.<br/>Tells whether to hide or display the properties that are not defined (`undefined` or `null`).
 
 **Example**:
 
     var element = curScore.selection.elements[0];
-    
     if (element.type !== Element.NOTE) return;
-    	
     note = element;
-    
     var debug = {
     	filterList: ["staff", "voice", /track/i, /part/i, /score/i, /excerpt/i, /accidental/],
     	isinclude: true,
@@ -72,7 +81,6 @@ Json structure:
     	stopat: Element.SEGMENT,
     	hideExcluded: true,
     };
-    
     Debug.debugO("note", note, debug);
 
 ### "compareObjects" function
