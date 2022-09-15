@@ -1,13 +1,14 @@
 
 /**********************
 /* Parking B - MuseScore - Solo Analyser core plugin
-/* v1.1.2
+/* v1.1.3
 /* ChangeLog:
 /* 	- 1.0.0: Initial release
 /* 	- 1.0.1: Improved robustness in CompareObjects
 /* 	- 1.1.0: New don't dig into list that applies in include mode
 /* 	- 1.1.1: Les objets sans clés sont correctement affichés
 /* 	- 1.1.2: Don't dig into objects when we are already at the maxlevl
+/* 	- 1.1.3: Conflicts between include list and dontdig list
 /**********************************************/
 var default_nodiglist = ["bbox", /^pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM", "lastTiedNote", "firstTiedNote"];
 var default_filterList = ["elements", "staff", "page"].concat(default_nodiglist);
@@ -83,6 +84,11 @@ function debugO(prefix, element, how, level, sub) {
         how.dontdig = default_nodiglist;
     if (typeof how.limitToNotNull !== 'boolean')
         how.limitToNotNull = false;
+
+    // managing conflicts between included list and dontdig list
+    if (how.isinclude) {
+        how.dontdig=how.dontdig.filter(function(e) { return how.filterList.indexOf(e)===-1});
+    }
 
     // -- titles --------------------------------------------------------
     if (level === 0 && sub === 0) {
@@ -257,10 +263,13 @@ function debugO(prefix, element, how, level, sub) {
         //            (element.elements.length>0) &&
         (!check("elements", how.filterList) || how.isinclude)) {
         addlog("");
-        addlog("Elements:");
+        addlog("Elements: (count="+element.elements.length+")");
         for (var i = 0; i < element.elements.length; i++) {
-            addLog("..Element: " + element.elements[i].userName());
-            debugO("", element.elements[i], how, 0, sub + 2); // restart at level 0
+            addlog("..Element: " + element.elements[i].userName());
+            var howElement=JSON.parse(JSON.stringify(how)); // cloning how
+            howElement.separateParent=false;
+            howElement.stopat=element.type;
+            debugO("", element.elements[i], howElement, 0, sub + 2); // restart at level 0
         }
     }
 
@@ -284,6 +293,10 @@ function debugO(prefix, element, how, level, sub) {
 
         } else if (element.type === how.stopat) {
             addlog("Parent: " + element.parent.userName() + " (stopping here)");
+
+        } else if (element.type === element.parent.type) {
+            addlog("Parent: " + element.parent.userName() + " (stopping here, because it seems we are looping!)");
+
         } else {
             addlog("Parent: " + element.parent.userName());
             debugO("", element.parent, how, 0, 1) // restart at level 0
