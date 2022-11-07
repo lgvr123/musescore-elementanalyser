@@ -26,8 +26,10 @@ For installation see [Plugins](https://musescore.org/en/handbook/3/plugins).
 ## Important remark
 The GUI version is a **slow process**. It might give the impression to bring MuseScore unstable. The user might be tempted to force MuseScore down, but it is unnecessary. The window will gets updated at the end of the process.
 
-## Support ##
-[<img src="/support/Button-Tipeee.png" alt="Support me on Tipee" height="80"/>](https://fr.tipeee.com/parkingb)
+## Sponsorship ##
+[<img src="/support/Button-Tipeee.png" alt="Support me on Tipee" height="50"/>](https://www.tipeee.com/parkingb) 
+[<img src="/support/paypal.jpg" alt="Support me on Paypal" height="55"/>](https://www.paypal.me/LaurentvanRoy) 
+[<img src="/support/patreon.png" alt="Support me on Patreon" height="25"/>](https://patreon.com/parkingb)
 
 ## Usage as library in your own plugins
 ### Initialisation
