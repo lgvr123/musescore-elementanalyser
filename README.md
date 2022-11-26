@@ -42,7 +42,7 @@ You must declare the library in your code:
 ```
 import QtQuick 2.9
 import MuseScore 3.0
-import "elementanalayser/elementanalayser.js" as Debug
+import "elementanalyser/elementanalyser.js" as Debug
 ```
 
 ### "debugO" function
