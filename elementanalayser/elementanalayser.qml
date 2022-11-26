@@ -5,13 +5,11 @@ import QtQuick.Window 2.2
 import QtQuick.Dialogs 1.2
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Layouts 1.1
-import "elementanalayser/elementanalayser.js" as Debug
-import "elementanalayser"
+import "elementanalayser.js" as Debug
 import Qt.labs.settings 1.0
 
 /**********************
 /* Parking B - MuseScore - Element analyser
-/* v1.1.4
 /* ChangeLog:
 /* 	- 1.0.0: Initial release
 /* 	- 1.1.0: Striketrough of non investigated elements
@@ -20,17 +18,25 @@ import Qt.labs.settings 1.0
 /* 	- 1.1.2: New "Tick" search option
 /* 	- 1.1.3: Qt.quit issue
 /* 	- 1.1.4: new Parent tree and Custom options
+/* 	- 1.2.0: Port to MuseScore 4.0
+/* 	- 1.2.0: New plugin folder strucutre
 /**********************************************/
 MuseScore {
     menuPath: "Plugins.Element analyser"
     description: "Retrieve all the properties about the selected element"
-    version: "1.1.4"
+    version: "1.2.04"
     pluginType: "dialog"
     requiresScore: true
     width: 600
     height: 650
 
     id: mainWindow
+    
+    Component.onCompleted : {
+        if (mscoreMajorVersion >= 4) {
+            mainWindow.thumbnailName = "logo.png";
+        }
+    }    
 
     property bool analyzeRunning: false
     

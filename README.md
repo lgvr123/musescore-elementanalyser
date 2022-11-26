@@ -1,16 +1,12 @@
 
-# Element Analyser plugin for MuseScore 3.x
+# Element Analyser plugin for MuseScore 3.x and MuseScore 4.x
 **Element Analyser** is an plugin for MuseScore that allows to retrieve the properties of an element. 
+<center><img src="/elementanalyser/logo.png" Alt="logo"></center>
 
-## What's new in 1.1.2 ?
-### User Interface
-* New option for searching only for **Non-Null elements**. This provides a faster search result, but will hide some properties you might be looking for
-* New option for providing the **tick** of the selected element
-* Store the last used option for faster re-use.
+## What's new in 1.2.0 ?
+* Ported to MuseScore 4
+* New internal plugin folder structure.
 
-### Library
-* New **dontdig** option ("do not dig into") defining a list of elements to never dig into. This mostly applies when in _include_ mode. The default value contains properties such as `next`, `prev`, `color`, `bbox`, `align`, ...
-* New **limitToNotNull** option specifying whether to hide or display the properties that are not defined.
 
 ## Features
 * It provides a **User Interface** for displaying those properties, as well as
@@ -22,6 +18,9 @@ As a library it provides rich and highly configurable functions to tailor the an
 ## Download and Install ##
 Download the [last stable version](https://github.com/lgvr123/musescore-elementanalyser/releases).
 For installation see [Plugins](https://musescore.org/en/handbook/3/plugins).
+The whole zip content (so the `elementanalyser\ ` folder) must be unzipped **as such** in your plugin folder. 
+For MuseScore 4, the installation remains the same. See the [MuseScore 4 draft handbook](https://musescore.org/en/handbook/4/plugins) for more information.
+
 
 ## Important remark
 The GUI version is a **slow process**. It might give the impression to bring MuseScore unstable. The user might be tempted to force MuseScore down, but it is unnecessary. The window will gets updated at the end of the process.
@@ -38,9 +37,11 @@ And also check my **[Zploger application](https://www.parkingb.be/zploger)**, a 
 ### Initialisation
 You must declare the library in your code:
 
- import QtQuick 2.9
- import MuseScore 3.0
- import "elementanalayser/elementanalayser.js" as Debug
+```
+import QtQuick 2.9
+import MuseScore 3.0
+import "elementanalayser/elementanalayser.js" as Debug
+```
 
 ### "debugO" function
 `debugO` is the function to deep-dive into a selected element.
@@ -54,16 +55,20 @@ This is the default call of `debugO`. This will provide the following analyse of
 
 **Example**:
 
- var element = curScore.selection.elements[0];
+ ```
+var element = curScore.selection.elements[0];
  Debug.debugO("note", element);
+```
 
 #### 2. `debugO(label, element, excluded)` 
 You can also specify your own list of elements. `excluded` might be a single string, being the name of a property to be excluded or an array of property names to be excluded. 
 
 **Example**:
 
- var element = curScore.selection.elements[0];
+ ```
+var element = curScore.selection.elements[0];
  Debug.debugO("note", element, ["elements", "staff", "part"]);
+```
 
 #### 3. `debugO(label, element, config)` 
 debugO is highly configurable. It can receive a json object defining its behaviour.
@@ -79,6 +84,7 @@ Json structure:
 
 **Example**:
 
+```
  var element = curScore.selection.elements[0];
  if (element.type !== Element.NOTE) return;
  note = element;
@@ -90,6 +96,7 @@ Json structure:
  	hideExcluded: true,
  };
  Debug.debugO("note", note, debug);
+ ```
 
 ### "compareObjects" function
 `compareObjects` does a comparison of series of object according a series of properties.
@@ -100,9 +107,11 @@ Its call signature is: `compareObjects(objects, properties, config)` with:
 
 **Example**:
 
+```
  var explore = ["scoreName", "parts.length", "title", "ntracks"];
  var scores = [curScore, curScore.excerpts[0].partScore];
  Debug.compareObjects(scores, explore, {maxlevel: 0});
+```
  
  ### "addLogger" function
 `addLogger` adds outputs for the analyse. The default output is the console. You may add other outputs such as files or QML widgets.
@@ -111,10 +120,12 @@ Its call signature is `addLogger(loggerfunction)` with;
 
 **Example**:
 
+```
  Debug.addLogger(
  	function (text) {
  	txtLog.text = txtLog.text + "\n" + text;
  });
+```
 
 ## IMPORTANT
 NO WARRANTY THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
