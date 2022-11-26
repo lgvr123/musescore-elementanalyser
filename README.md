@@ -1,7 +1,9 @@
 
 # Element Analyser plugin for MuseScore 3.x and MuseScore 4.x
 **Element Analyser** is an plugin for MuseScore that allows to retrieve the properties of an element. 
-<center><img src="/elementanalyser/logo.png" Alt="logo"></center>
+<p align="center"><img src="/elementanalyser/logo.png" Alt="logo" width="300" /></p>
+
+<!--img src="/elementanalyser/logo.png" Alt="logo" width="300" style="display: block; margin: auto;"/-->
 
 ## What's new in 1.2.0 ?
 * Ported to MuseScore 4
