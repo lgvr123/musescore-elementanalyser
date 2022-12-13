@@ -1,8 +1,15 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 
+/**
+ * 1.0: initial
+ * 1.1: tweak colours in dark mode
+ */
 RadioButton {
-	id: control
+    id: control
+    
+    width: 200
+    
     indicator: Rectangle {
         implicitWidth: 20
         implicitHeight: 20
@@ -20,5 +27,19 @@ RadioButton {
             color: control.down ? "#555555" : "black"
             visible: control.checked
         }
+    }
+
+   contentItem: Text {
+        text: control.text
+        font: control.font
+        opacity: enabled ? 1.0 : 0.3
+        color: sysActivePalette.text
+        verticalAlignment: Text.AlignVCenter
+        leftPadding: control.indicator.width + control.spacing
+    }
+
+    SystemPalette {
+        id: sysActivePalette;
+        colorGroup: SystemPalette.Active
     }
 }

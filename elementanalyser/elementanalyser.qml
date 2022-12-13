@@ -20,11 +20,12 @@ import Qt.labs.settings 1.0
 /* 	- 1.1.4: new Parent tree and Custom options
 /* 	- 1.2.0: Port to MuseScore 4.0
 /* 	- 1.2.0: New plugin folder strucutre
+/* 	- 1.2.1: Darkmode
 /**********************************************/
 MuseScore {
     menuPath: "Plugins.Element analyser"
     description: "Retrieve all the properties about the selected element"
-    version: "1.2.04"
+    version: "1.2.1"
     pluginType: "dialog"
     requiresScore: true
     width: 600
@@ -34,7 +35,9 @@ MuseScore {
     
     Component.onCompleted : {
         if (mscoreMajorVersion >= 4) {
+            mainWindow.title = "Element analyser";
             mainWindow.thumbnailName = "logo.png";
+            mainWindow.categoryCode = "analysis";
         }
     }    
 
@@ -202,7 +205,7 @@ MuseScore {
         }
 
         RowLayout {
-            Label {
+            NiceLabel {
                 text: "Analyse mode:"
             }
             ButtonGroup {
@@ -318,5 +321,9 @@ MuseScore {
         onAccepted: {
             mainWindow.parent.Window.window.close(); //Qt.quit()
         }
+    }
+    SystemPalette {
+        id: sysActivePalette;
+        colorGroup: SystemPalette.Active
     }
 }
