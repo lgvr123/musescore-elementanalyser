@@ -23,6 +23,11 @@ For installation see [Plugins](https://musescore.org/en/handbook/3/plugins).
 The whole zip content (so the `elementanalyser\ ` folder) must be unzipped **as such** in your plugin folder. 
 For MuseScore 4, the installation remains the same. See the [MuseScore 4 draft handbook](https://musescore.org/en/handbook/4/plugins) for more information.
 
+## Support of MS4.0
+**SUPPORTED**
+
+MuseScore 4.0 support for plugin is minimal. Many functions are not supported for the time being or have changed. 
+Therefore, this plugin does not work under MuseScore 4.0.
 
 ## Important remark
 The GUI version is a **slow process**. It might give the impression to bring MuseScore unstable. The user might be tempted to force MuseScore down, but it is unnecessary. The window will gets updated at the end of the process.
