@@ -26,9 +26,6 @@ For MuseScore 4, the installation remains the same. See the [MuseScore 4 draft h
 ## Support of MS4.0
 **SUPPORTED**
 
-MuseScore 4.0 support for plugin is minimal. Many functions are not supported for the time being or have changed. 
-Therefore, this plugin does not work under MuseScore 4.0.
-
 ## Important remark
 The GUI version is a **slow process**. It might give the impression to bring MuseScore unstable. The user might be tempted to force MuseScore down, but it is unnecessary. The window will gets updated at the end of the process.
 
