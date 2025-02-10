@@ -44,6 +44,14 @@ function debugNonNulls(prefix, element, how) {
 /**
 * One can use maxlevel=-1 as maxlevel=0 to have a simplified output presentation
 */
+function debugAll(prefix, element, how, level, sub) {
+    debugO(prefix, element, how, level, sub);
+}
+
+/**
+* One can use maxlevel=-1 as maxlevel=0 to have a simplified output presentation
+* @deprecated: Use #debugAll
+*/
 function debugO(prefix, element, how, level, sub) {
 
     var title = "";
@@ -108,24 +116,39 @@ function debugO(prefix, element, how, level, sub) {
 
     var label = prefix; // + "(" + level + ")";
 
+    // -- starting point --------------------------------------------------------
+    var _how=  JSON.parse(JSON.stringify(how)) ;  // cloning "how"
+    if (how.startAt) {
+        var what = how.startAt;
+        var startingPoint;
 
+        try {
+            startingPoint = eval("element" + ((what.charAt(0) !== '.') ? "." : "") + what);
+        } catch (error) {
+            console.error("Failed to parse the startAt expression : "+error);
+        }
+
+        if (startingPoint)
+            element = startingPoint;
+        _how.startAt = undefined;
+    }
     // -- analyze --------------------------------------------------------
     if (typeof element === 'undefined') {
-        if (!how.limitToNotNull)
+        if (!_how.limitToNotNull && !_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
             addlog(label + ": undefined");
     } else if (element === null) {
-        if (!how.limitToNotNull)
+        if (!_how.limitToNotNull && !_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
             addlog(label + ": null");
     } else if (Array.isArray(element)) { // QMLLists are not arrays but behave like arrays
         for (var i = 0; i < element.length; i++) {
-            debugO(prefix + "-" + i, element[i], how, level);
+            debugO(prefix + "-" + i, element[i], _how, level);
         }
     } else if (typeof element === 'object') {
-        if (level <= how.maxlevel) {
+        if (level <= _how.maxlevel) {
             var kys = Object.keys(element);
 
 
-            if (kys.length === 0) {
+            if ((kys.length === 0)  && !_how.startAt) { // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
                 if (typeof(element.userName) === 'function') {
                     addlog(label + ": " + element.userName());
                 } else {
@@ -172,13 +195,13 @@ function debugO(prefix, element, how, level, sub) {
                 }
 
                 // ..in "include" mode we never keep what's in the "don't dig into" list
-                else if (how.dontdig.indexOf(key) > -1 && how.isinclude) {
+                else if (_how.dontdig.indexOf(key) > -1 && _how.isinclude) {
                     keep = false;
 					// console.log("reject because in `don't dig` list");
                 }
 
                 // ..we never keep the parent and the elements of the 1st level if a separated analyse is required
-                else if ((key === 'parent' || key === 'elements') && level === 0 && how.separateParent) {
+                else if ((key === 'parent' || key === 'elements') && level === 0 && _how.separateParent) {
                     keep = false;
 					// console.log("reject because is 'parnt'");
                 }
@@ -189,14 +212,14 @@ function debugO(prefix, element, how, level, sub) {
                 }
 
                 // ..in "include" mode, we keep every value which is an object in order to seek for matching properties underneath, if we are not at the max level
-                else if ((typeof value === 'object') && how.isinclude && (level < how.maxlevel)) {
+                else if ((typeof value === 'object') && _how.isinclude && (level < _how.maxlevel)) {
                     keep = true;
 					// console.log("keep because is an object, and we are going to investigate all objects");
                 }
 
-                // ..we exclude/include how's in the filter list
+                // ..we exclude/include _how's in the filter list
                 else {
-                    keep = (check(key, how.filterList) ^ !how.isinclude);
+                    keep = (check(key, _how.filterList) ^ !_how.isinclude);
 					// console.log((keep?"keep":"reject")+" because in include/exclude list");
                 }
 				
@@ -204,19 +227,19 @@ function debugO(prefix, element, how, level, sub) {
 
                 // digging into the keys needing further analyze
                 if (keep) {
-                    debugO(prefix + "." + key, value, how, level + 1);
-                } else if (!how.hideExcluded) {
+                    debugO(prefix + "." + key, value, _how, level + 1);
+                } else if (!_how.hideExcluded && !_how.startAt) { // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
                     addlog(label + "." + key + ": ---"); // in "include" mode, hide how's excluded.
                 }
             }
 
         }
         // Max level: just logging basic information
-        else if (level == (how.maxlevel + 1)) {
+        else if (level == (_how.maxlevel + 1)) {
             for (var i = 0; i < minimum_set.length; i++) {
                 var d = minimum_set[i];
                 if (typeof(element[d]) !== 'undefined') {
-                    debugO(prefix + "." + d, element[d], how, level + 1);
+                    debugO(prefix + "." + d, element[d], _how, level + 1);
                 }
             }
 
@@ -239,18 +262,22 @@ function debugO(prefix, element, how, level, sub) {
                 more = element.userName();
             } else
                 more = element.toString();
-            addlog(label + "." + more);
+            if (!_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+                addlog(label + "." + more);
         }
         // Beyong the maxlevel, simply logging a string summary of the object
         else if (typeof(element.userName) === 'function') {
-            addlog(label + ": " + element.userName());
+            if (!_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+                addlog(label + ": " + element.userName());
         } else { // shouldn't not occur
-            addlog(label + ": " + element.toString());
+            if (!_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+                addlog(label + ": " + element.toString());
         }
-    } else {
-        addlog(label + ": " + element.toString());
+        }
+    else {
+        if (!_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+            addlog(label + ": " + element.toString());
     }
-
     if (level === 0) {
         //addlog("~~ "+title+": end of analyze ~~");
     }
@@ -259,14 +286,14 @@ function debugO(prefix, element, how, level, sub) {
     if ((level === 0) &&
         element &&
         (typeof(element.elements) !== 'undefined') &&
-        (how.separateParent) &&
+        (_how.separateParent) &&
         //            (element.elements.length>0) &&
-        (!check("elements", how.filterList) || how.isinclude)) {
+        (!check("elements", _how.filterList) || _how.isinclude)) {
         addlog("");
         addlog("Elements: (count="+element.elements.length+")");
         for (var i = 0; i < element.elements.length; i++) {
             addlog("..Element: " + element.elements[i].userName());
-            var howElement=JSON.parse(JSON.stringify(how)); // cloning how
+            var howElement=JSON.parse(JSON.stringify(how)); // cloning the original "how" 
             howElement.separateParent=false;
             howElement.stopat=element.type;
             debugO("", element.elements[i], howElement, 0, sub + 2); // restart at level 0
