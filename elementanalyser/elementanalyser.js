@@ -1,7 +1,7 @@
 
 /**********************
 /* Parking B - MuseScore - Solo Analyser core plugin
-/* v1.1.3
+/* v1.2.0
 /* ChangeLog:
 /* 	- 1.0.0: Initial release
 /* 	- 1.0.1: Improved robustness in CompareObjects
@@ -9,6 +9,8 @@
 /* 	- 1.1.1: Les objets sans clés sont correctement affichés
 /* 	- 1.1.2: Don't dig into objects when we are already at the maxlevl
 /* 	- 1.1.3: Conflicts between include list and dontdig list
+/* 	- 1.2.0: new startAtProperty option
+/* 	- 1.2.0: new startAtParent option
 /**********************************************/
 var default_nodiglist = ["bbox", /^pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM", "lastTiedNote", "firstTiedNote"];
 var default_filterList = ["elements", "staff", "page"].concat(default_nodiglist);
@@ -17,6 +19,12 @@ var deepest_parent = 70; //Element.MEASURE;
 var deepest_level = 1;
 
 var xloggers = [];
+
+var stopMe = false;
+
+function forceStop() {
+    stopMe=true;
+}
 
 function addLogger(f) {
     if (typeof f !== 'function') {
@@ -38,6 +46,7 @@ function debugNonNulls(prefix, element, how) {
         how.limitToNotNull = true;
     }
 
+    stopMe=false;
     debugO(prefix, element, how);
 
 }
@@ -45,6 +54,7 @@ function debugNonNulls(prefix, element, how) {
 * One can use maxlevel=-1 as maxlevel=0 to have a simplified output presentation
 */
 function debugAll(prefix, element, how, level, sub) {
+    stopMe=false;
     debugO(prefix, element, how, level, sub);
 }
 
@@ -53,6 +63,11 @@ function debugAll(prefix, element, how, level, sub) {
 * @deprecated: Use #debugAll
 */
 function debugO(prefix, element, how, level, sub) {
+
+    if(stopMe) {
+         addlog("!! Forced Stop [1]");
+         return;
+    }
 
     var title = "";
 
@@ -88,6 +103,8 @@ function debugO(prefix, element, how, level, sub) {
         how.separateParent = true;
     if (typeof(how.stopat) !== 'number')
         how.stopat = deepest_parent;
+    if (typeof(how.startat) !== 'number')
+        how.startat = undefined; // starting from current element
     if (typeof(how.dontdig) === 'undefined')
         how.dontdig = default_nodiglist;
     if (typeof how.limitToNotNull !== 'boolean')
@@ -118,26 +135,37 @@ function debugO(prefix, element, how, level, sub) {
 
     // -- starting point --------------------------------------------------------
     var _how=  JSON.parse(JSON.stringify(how)) ;  // cloning "how"
-    if (how.startAt) {
-        var what = how.startAt;
+    if (how.startAtProperty) {
+        var what = how.startAtProperty;
         var startingPoint;
 
         try {
             startingPoint = eval("element" + ((what.charAt(0) !== '.') ? "." : "") + what);
         } catch (error) {
-            console.error("Failed to parse the startAt expression : "+error);
+            console.error("Failed to parse the startAtProperty expression : "+error);
         }
 
-        if (startingPoint)
+        if (startingPoint) {
             element = startingPoint;
-        _how.startAt = undefined;
+            _how.startAtProperty = undefined;
+        }
     }
+
+    if (how.startat) {
+        if (element.type === how.startat) {
+            _how.startat=undefined;
+        } else {
+            addlog("Bypassing: " + element.userName() + " (check next parent)");
+        }
+    }
+
     // -- analyze --------------------------------------------------------
+    if (typeof _how.startat === 'undefined') { // si on a un "startat" toujouts présent, c'est qu'on n'a pas encore atteint le bon parent
     if (typeof element === 'undefined') {
-        if (!_how.limitToNotNull && !_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+            if (!_how.limitToNotNull && !_how.startAtProperty) // si on a un "startAtProperty" toujouts présent, c'est qu'on n'est pas encore au bon endroit
             addlog(label + ": undefined");
     } else if (element === null) {
-        if (!_how.limitToNotNull && !_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+            if (!_how.limitToNotNull && !_how.startAtProperty) // si on a un "startAtProperty" toujouts présent, c'est qu'on n'est pas encore au bon endroit
             addlog(label + ": null");
     } else if (Array.isArray(element)) { // QMLLists are not arrays but behave like arrays
         for (var i = 0; i < element.length; i++) {
@@ -148,7 +176,7 @@ function debugO(prefix, element, how, level, sub) {
             var kys = Object.keys(element);
 
 
-            if ((kys.length === 0)  && !_how.startAt) { // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+                if ((kys.length === 0)  && !_how.startAtProperty) { // si on a un "startAtProperty" toujouts présent, c'est qu'on n'est pas encore au bon endroit
                 if (typeof(element.userName) === 'function') {
                     addlog(label + ": " + element.userName());
                 } else {
@@ -179,6 +207,12 @@ function debugO(prefix, element, how, level, sub) {
 
             // looping thru the keys
             for (var i = 0; i < kys.length; i++) {
+                    
+                    if(stopMe) {
+                         addlog("!! Forced Stop [2]");
+                         return;
+                    }
+                    
                 var key = kys[i];
                 var value = element[key];
                 var asint = parseInt(key);
@@ -203,7 +237,7 @@ function debugO(prefix, element, how, level, sub) {
                 // ..we never keep the parent and the elements of the 1st level if a separated analyse is required
                 else if ((key === 'parent' || key === 'elements') && level === 0 && _how.separateParent) {
                     keep = false;
-					// console.log("reject because is 'parnt'");
+                        // console.log("reject because is 'parent'");
                 }
                 // ..check d'une pseudo array
                 else if ((asint == key) && (asint < element.length)) { // "==" on purpose instead of "==="
@@ -228,7 +262,7 @@ function debugO(prefix, element, how, level, sub) {
                 // digging into the keys needing further analyze
                 if (keep) {
                     debugO(prefix + "." + key, value, _how, level + 1);
-                } else if (!_how.hideExcluded && !_how.startAt) { // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+                    } else if (!_how.hideExcluded && !_how.startAtProperty) { // si on a un "startAtProperty" toujouts présent, c'est qu'on n'est pas encore au bon endroit
                     addlog(label + "." + key + ": ---"); // in "include" mode, hide how's excluded.
                 }
             }
@@ -237,6 +271,12 @@ function debugO(prefix, element, how, level, sub) {
         // Max level: just logging basic information
         else if (level == (_how.maxlevel + 1)) {
             for (var i = 0; i < minimum_set.length; i++) {
+
+                    if(stopMe) {
+                         addlog("!! Forced Stop [3]");
+                         return;
+                    }
+                    
                 var d = minimum_set[i];
                 if (typeof(element[d]) !== 'undefined') {
                     debugO(prefix + "." + d, element[d], _how, level + 1);
@@ -262,20 +302,20 @@ function debugO(prefix, element, how, level, sub) {
                 more = element.userName();
             } else
                 more = element.toString();
-            if (!_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+                if (!_how.startAtProperty) // si on a un "startAtProperty" toujouts présent, c'est qu'on n'est pas encore au bon endroit
                 addlog(label + "." + more);
         }
         // Beyong the maxlevel, simply logging a string summary of the object
         else if (typeof(element.userName) === 'function') {
-            if (!_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+                if (!_how.startAtProperty) // si on a un "startAtProperty" toujouts présent, c'est qu'on n'est pas encore au bon endroit
                 addlog(label + ": " + element.userName());
         } else { // shouldn't not occur
-            if (!_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+                if (!_how.startAtProperty) // si on a un "startAtProperty" toujouts présent, c'est qu'on n'est pas encore au bon endroit
                 addlog(label + ": " + element.toString());
         }
         }
     else {
-        if (!_how.startAt) // si on a un "startAt" toujouts présent, c'est qu'on n'est pas encore au bon endroit
+            if (!_how.startAtProperty) // si on a un "startAtProperty" toujouts présent, c'est qu'on n'est pas encore au bon endroit
             addlog(label + ": " + element.toString());
     }
     if (level === 0) {
@@ -300,11 +340,14 @@ function debugO(prefix, element, how, level, sub) {
         }
     }
 
+    }
+    
     // if (level === 0) {
     // console.log("parent: " + (element.parent ? element.parent.toString() : "/"));
     // console.log("separateParent: " + how.separateParent);
     // console.log("type: " + element.type);
     // }
+
 
     // analyze  du parent
     if ((level === 0) &&
@@ -369,13 +412,23 @@ function compareObjects(objects, properties, how) {
 // -- working methods ---------------------------------------------
 
 function check(e, tests) {
+    var dd = (e.search(/text/i)>=0);
     for (var t = 0; t < tests.length; t++) {
-        if ((tests[t].test && tests[t].test(e)) || (tests[t] === e))
+        if (dd)
+            console.log("Comparing " + e + " vs. " + tests[t]);
+        if (e.search(tests[t]) >= 0) {
+            // if ((tests[t].test && tests[t].test(e)) || (tests[t] === e)) {
+            if (dd)
+                console.log("Found");
+
             return true;
+    }
+        if (dd)
+            console.log("Not Found");
+
     }
     return false;
 }
-
 function addlog(text) {
     console.log(text);
     if (xloggers) {
