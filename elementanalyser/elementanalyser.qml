@@ -2,8 +2,11 @@ import QtQuick 2.9
 import QtQuick.Controls 2.2
 import MuseScore 3.0
 import QtQuick.Window 2.2
+import QtQuick.Dialogs 1.2
+import QtQuick.Controls.Styles 1.4
 import QtQuick.Layouts 1.1
 import "elementanalyser.js" as Debug
+import Qt.labs.settings 1.0
 
 /**********************
 /* Parking B - MuseScore - Element analyser
@@ -310,6 +313,7 @@ MuseScore {
     // ----------------------------------------------------------------------
     MessageDialog {
         id: invalidSelectionDialog
+        icon: StandardIcon.Warning
         standardButtons: StandardButton.Ok
         title: 'Invalid Selection!'
         text: 'The selection is not valid'
