@@ -21,6 +21,7 @@ import Qt.labs.settings 1.0
 /* 	- 1.2.0: Port to MuseScore 4.0
 /* 	- 1.2.0: New plugin folder strucutre
 /* 	- 1.2.1: Darkmode
+/* 	- 1.2.2: Better rendering of null elements
 /**********************************************/
 MuseScore {
     menuPath: "Plugins.Element analyser"
@@ -68,7 +69,8 @@ MuseScore {
             if (split === null)
                 recompose = text;
             else {
-                recompose = split[1] + "<s>" + split[2] + "</s>";
+                //recompose = split[1] + "<s>" + split[2] + "</s>";
+                recompose = split[1] + "<span style='color: rgba(0, 0, 0, 0.5);'>" + split[2] + "</span>";
             }
             txtLog.text = txtLog.text + "\n" + recompose;
         });
