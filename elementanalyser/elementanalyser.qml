@@ -113,6 +113,8 @@ MuseScore {
 
         if(!element) return;
         
+        timeoutTimer.start();
+
         // Performing the analyze
         if (rdbAnalyseAll.checked) {
             Debug.debugO(element.userName()+" === all", element);
@@ -146,6 +148,7 @@ MuseScore {
             });
             
         }
+        timeoutTimer.stop();
         analyzeRunning = false;
     }
     // Component.onCompleted: console.log("Window ready!")
@@ -308,6 +311,23 @@ MuseScore {
             txtLog.text = txtLog.text + "\n" + "</html>";
         }
     }
+
+    Timer {
+        id: timeoutTimer
+        interval: 5000 // 5ms
+        repeat: false
+        running: false
+
+        onTriggered: {
+            var msg="!!Timeout -- Stopping the analyse";
+            txtLog.text = txtLog.text + "\n" + msg;
+            console.log(msg);
+            Debug.forceStop();
+            
+        }
+    }
+
+
     // ----------------------------------------------------------------------
     // --- Screen support ---------------------------------------------------
     // ----------------------------------------------------------------------
