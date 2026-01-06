@@ -1,7 +1,7 @@
 
 /**********************
 /* Parking B - MuseScore - Solo Analyser core plugin
-/* v1.2.0
+/* v1.2.1
 /* ChangeLog:
 /* 	- 1.0.0: Initial release
 /* 	- 1.0.1: Improved robustness in CompareObjects
@@ -11,8 +11,9 @@
 /* 	- 1.1.3: Conflicts between include list and dontdig list
 /* 	- 1.2.0: new startAtProperty option
 /* 	- 1.2.0: new startAtParent option
+/* 	- 1.2.1: error in check of property names vs. the filterList when RegExp were present in the list
 /**********************************************/
-var default_nodiglist = ["bbox", /^pos/i, /color/i, /align/i, "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM", "lastTiedNote", "firstTiedNote"];
+var default_nodiglist = ["bbox", /^pos/, "/color/", "/align/", "next", "prev", "nextInMeasure", "prevInMeasure", "lastMeasure", "firstMeasure", "lastMeasureMM", "firstMeasureMM", "prevMeasure", "nextMeasure", "prevMeasureMM", "nextMeasureMM", "lastTiedNote", "firstTiedNote"];
 var default_filterList = ["elements", "staff", "page"].concat(default_nodiglist);
 var minimum_set = ["type", "name", "segmentType"];
 var deepest_parent = 70; //Element.MEASURE;
@@ -46,8 +47,9 @@ function debugNonNulls(prefix, element, how) {
         how.limitToNotNull = true;
     }
 
+   
     stopMe=false;
-    debugO(prefix, element, how);
+    start(prefix, element, how);
 
 }
 /**
@@ -55,21 +57,14 @@ function debugNonNulls(prefix, element, how) {
 */
 function debugAll(prefix, element, how, level, sub) {
     stopMe=false;
-    debugO(prefix, element, how, level, sub);
+    start(prefix, element, how, level, sub);
 }
 
 /**
 * One can use maxlevel=-1 as maxlevel=0 to have a simplified output presentation
 * @deprecated: Use #debugAll
 */
-function debugO(prefix, element, how, level, sub) {
-
-    if(stopMe) {
-         addlog("!! Forced Stop [1]");
-         return;
-    }
-
-    var title = "";
+function start(prefix, element, how, level, sub) {
 
     if (typeof level === 'undefined') {
         level = 0;
@@ -110,10 +105,35 @@ function debugO(prefix, element, how, level, sub) {
     if (typeof how.limitToNotNull !== 'boolean')
         how.limitToNotNull = false;
 
+    // cleaning of the filterList (i.e. building of the regular expression)
+    for(var i=0;i<how.filterList.length;i++) {
+        var obj=how.filterList[i];
+        if (typeof obj==="string" && Array.from(obj)[0]==='/') {
+            try {
+                var re=obj.split("/")[1];
+                how.filterList[i]=new RegExp(re,'i');
+            } catch (e) {
+                console.warn("fail to build RegExp for \""+obj+"\"");
+            }
+        }
+    }
     // managing conflicts between included list and dontdig list
     if (how.isinclude) {
         how.dontdig=how.dontdig.filter(function(e) { return how.filterList.indexOf(e)===-1});
     }
+    
+    debugO(prefix, element, how, level, sub);
+}
+
+function debugO(prefix, element, how, level, sub) {
+
+    var title = "";
+
+    if(stopMe) {
+         addlog("!! Forced Stop [1]");
+         return;
+    }
+
 
     // -- titles --------------------------------------------------------
     if (level === 0 && sub === 0) {
@@ -135,6 +155,7 @@ function debugO(prefix, element, how, level, sub) {
 
     // -- starting point --------------------------------------------------------
     var _how=  JSON.parse(JSON.stringify(how)) ;  // cloning "how"
+    _how.filterList=how.filterList; // je garder la liste d'origine (avec des RegExp) car le clonage perd la nature de l'objet
     if (how.startAtProperty) {
         var what = how.startAtProperty;
         var startingPoint;
@@ -218,6 +239,8 @@ function debugO(prefix, element, how, level, sub) {
                 var asint = parseInt(key);
 
 				// console.log("--- "+key+" ---");
+                
+                var DEBUG="false";
 
                 // identifying if a key must be further analyzed
                 var keep = false;
@@ -253,7 +276,8 @@ function debugO(prefix, element, how, level, sub) {
 
                 // ..we exclude/include _how's in the filter list
                 else {
-                    keep = (check(key, _how.filterList) ^ !_how.isinclude);
+                    var res=check(key, _how.filterList);
+                    keep = (res != !_how.isinclude);
 					// console.log((keep?"keep":"reject")+" because in include/exclude list");
                 }
 				
@@ -412,17 +436,46 @@ function compareObjects(objects, properties, how) {
 // -- working methods ---------------------------------------------
 
 function check(e, tests) {
-    var dd = (e.search(/text/i)>=0);
+    var dd = (e.search(/posAbove/i) >= 0); //DEBUG
     for (var t = 0; t < tests.length; t++) {
-        if (dd)
-            console.log("Comparing " + e + " vs. " + tests[t]);
-        if (e.search(tests[t]) >= 0) {
-            // if ((tests[t].test && tests[t].test(e)) || (tests[t] === e)) {
-            if (dd)
-                console.log("Found");
+        // Les éléments de la liste sont soit des Strings soit des Regexp
 
-            return true;
-    }
+        var obj = tests[t];
+
+        if (dd)
+            console.log("Comparing " + e + " vs. " + obj.toString())
+
+
+        var typof = typeof obj;
+        // Essayer de détecter les regular expressions dans la liste
+        if (obj instanceof RegExp) typof="regexp";
+        if (Object.prototype.toString.call(obj) === '[object RegExp]') typof = "regexp";
+        if (obj[Symbol.test] !== undefined) typof = "regexp";
+        if (typeof obj.test === 'function' && typeof obj.source === 'string') typof="regexp";
+        
+        
+        //console.log(typof);
+        if (typof === "string") {
+            if (dd)
+                console.log("..As String")
+            if (e.search(obj) >= 0) {
+                if (dd)
+                    console.log("Found");
+                return true;
+            }
+        } else if (typof === "regexp") {
+            if (dd)
+                console.log("..As Regexp")
+            if (obj.test(e)) { // obj.test(xxx) 
+                if (dd)
+                    console.log("Found");
+                return true;
+            }
+        } else {
+            if (dd)
+                console.log("--unknown => bypassed")
+        }
+        
         if (dd)
             console.log("Not Found");
 

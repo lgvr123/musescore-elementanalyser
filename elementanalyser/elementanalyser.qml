@@ -119,7 +119,7 @@ MuseScore {
 
         // Performing the analyze
         if (rdbAnalyseAll.checked) {
-            Debug.debugO(element.userName()+" === all", element);
+            Debug.start(element.userName()+" === all", element);
         } else if (rdbAnalyseNonNull.checked) {
             Debug.debugNonNulls(element.userName()+" === non null properties", element);
         } else if (rdbAnalyseTick.checked) {
@@ -141,7 +141,7 @@ MuseScore {
             
         } else if (rdbCustom.checked) {
             // ////// CUSTOM ANALYSE ///////
-            Debug.debugO(element.userName()+" === CUSTOM", element, {
+            Debug.start(element.userName()+" === CUSTOM", element, {
                 filterList: ["elements", "page", "prevMeasure", "nextMeasure"],
                 isinclude: true,
                 maxlevel: 1,
